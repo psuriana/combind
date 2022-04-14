@@ -245,7 +245,8 @@ class Features:
                 names += [st.property['s_m_title']]
                 if len(names) == self.max_poses:
                     break
-        np.save(out, names)
+        if len(names) > 0:
+            np.save(out, names)
 
     def compute_gscore(self, pv, out):
         gscores = []
@@ -255,7 +256,8 @@ class Features:
                 gscores += [st.property['r_i_docking_score']]
                 if len(gscores) == self.max_poses:
                     break
-        np.save(out, gscores)
+        if len(gscores) > 0:
+            np.save(out, gscores)
 
     def compute_all_glide_related_score(self, pv, out):
         scores = []
@@ -265,17 +267,18 @@ class Features:
                 data = {}
                 data['r_i_docking_score'] = st.property['r_i_docking_score']
                 for k, v in st.property.items():
-                    if '_glide' in k:
+                    if ('_glide' in k) or ('r_epik_' in k):
                         data[k] = v
                 scores.append(data)
                 if len(scores) == self.max_poses:
                     break
-        np.save(out, scores)
+        if len(scores) > 0:
+            np.save(out, scores)
 
     def compute_ifp(self, pv, out):
         from features.ifp import ifp
         settings = IFP[self.ifp_version]
-        ifp(settings, pv, out, self.max_poses)
+        return ifp(settings, pv, out, self.max_poses)
 
     def compute_ifp_pair(self, ifp1, ifp2, feature, out):
         from features.ifp_similarity import ifp_tanimoto

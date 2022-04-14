@@ -80,7 +80,7 @@ def structprep(struct, grid_struct):
     struct_process(structs)
     struct_align(struct, structs)
     struct_sort(structs)
-    make_grid(grid_struct)
+    #make_grid(grid_struct)
 
 @main.command()
 @click.argument('smiles')
@@ -226,9 +226,13 @@ def rmsd(docking, crystal):
             continue
 
         crystal_path = crystal_path[0]
-        print('Computing rmsd for {} to {}.'.format(docking_path, crystal_path))
-        rmsds = rmsd(crystal_path, docking_path)
-        np.save(out, rmsds)
+        try:
+            print('Computing rmsd for {} to {}.'.format(docking_path, crystal_path))
+            rmsds = rmsd(crystal_path, docking_path)
+            if len(rmsds) > 0:
+                np.save(out, rmsds)
+        except Exception as e:
+            print(e)
 
 @main.command()
 @click.argument('docking', default='docking/*/*_pv.maegz')

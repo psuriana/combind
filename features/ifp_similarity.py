@@ -11,10 +11,11 @@ def merge_hbonds(ifp):
     measure.
     """
 
+    import pdb; pdb.set_trace()
     mask = ifp.label=='hbond_acceptor'
     ifp.loc[mask, 'protein_res'] = [res+'acceptor' for res in ifp.loc[mask, 'protein_res']]
     ifp.loc[mask, 'label'] = 'hbond'
-    
+
     mask = ifp.label=='hbond_donor'
     ifp.loc[mask, 'protein_res'] = [res+'donor' for res in ifp.loc[mask, 'protein_res']]
     ifp.loc[mask, 'label'] = 'hbond'

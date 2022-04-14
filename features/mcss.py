@@ -7,7 +7,10 @@ from schrodinger.structutils.rmsd import ConformerRmsd
 from schrodinger.structutils.analyze import generate_smiles
 from schrodinger.structutils.analyze import evaluate_smarts_canvas
 
-def mcss(pv1, pv2, mcss_types_file, max_poses, atomtype='{}', min_mcss_atoms=11):
+def mcss(pv1, pv2, mcss_types_file, max_poses, atomtype='{}', min_mcss_atoms=11,
+         return_mcss_structs=False):
+    #print(pv1)
+    #print(pv2)
     with StructureReader(pv1) as sts1, StructureReader(pv2) as sts2:
         # Skip receptor if pose viewer file
         if pv1.endswith('_pv.maegz'):
@@ -18,11 +21,14 @@ def mcss(pv1, pv2, mcss_types_file, max_poses, atomtype='{}', min_mcss_atoms=11)
 
         memo = {}
         rmsds = []
+        mcss_structs = []
         for j, st1 in enumerate(sts1):
             if j == max_poses:
                 break
             st1 = merge_halogens(st1)
             rmsds += [np.zeros(len(sts2)) + float('inf')]
+            if return_mcss_structs:
+                mcss_structs += [[None]*len(sts2)]
 
             for i, st2 in enumerate(sts2):
                 if i == max_poses:
@@ -48,15 +54,22 @@ def mcss(pv1, pv2, mcss_types_file, max_poses, atomtype='{}', min_mcss_atoms=11)
                     for atom_idx1 in atom_idxs1:
                         for atom_idx2 in atom_idxs2:
                             rmsd = calculate_rmsd(st1, st2, atom_idx1, atom_idx2)
-                            rmsds[-1][i] = min(rmsds[-1][i], rmsd)
-    return np.vstack(rmsds)
+                            if rmsd < rmsds[-1][i]:
+                                rmsds[-1][i] = rmsd
+                                if return_mcss_structs:
+                                    mcss_structs[-1][i] = (atom_idx1, atom_idx2, mcss_atoms, st1_atoms, st2_atoms)
+    if not return_mcss_structs:
+        return np.vstack(rmsds)
+    else:
+        return np.vstack(rmsds), np.vstack(mcss_structs)
 
 def compute_mcss(st1, st2, mcss_types_file, memo={}, atomtype='C {}'):
     smi1 = generate_smiles(st1)
     smi2 = generate_smiles(st2)
     if (smi1, smi2) not in memo:
-        cmd = f"$SCHRODINGER/utilities/canvasMCS -imae {{}} -ocsv {{}} -stop 10 -atomtype {atomtype:}"
+        cmd = f"$SCHRODINGER/utilities/canvasMCS -imae {{}} -ocsv {{}} -stop 5 -atomtype {atomtype:}"
         with tempfile.TemporaryDirectory() as wd:
+            #wd = '/home/users/psuriana/PYMOL_STRUCT'
             mae = wd+'/temp.maegz'
             csv = wd+'/temp.csv'
 
@@ -66,6 +79,7 @@ def compute_mcss(st1, st2, mcss_types_file, memo={}, atomtype='C {}'):
             stwr.append(st1)
             stwr.append(st2)
             stwr.close()
+            #print(f'Writing temp to {mae}')
 
             r = subprocess.run(cmd.format(os.path.basename(mae), os.path.basename(csv),
                                           os.path.abspath(mcss_types_file)),
@@ -105,7 +119,7 @@ def calculate_rmsd(pose1, pose2, atom_idx1, atom_idx2):
     substructure1 = pose1.extract(atom_idx1)
     substructure2 = pose2.extract(atom_idx2)
     try:
-        calc = ConformerRmsd(substructure1, substructure2)
+        calc = ConformerRmsd(substructure1, substructure2, in_place=False)
         calc.use_heavy_atom_graph = True
         calc.renumber_structures = True
         rmsd = calc.calculate()
@@ -115,22 +129,30 @@ def calculate_rmsd(pose1, pose2, atom_idx1, atom_idx2):
         # atom indices being used when the heavy_atom_graph
         # is used. That being said, the above is more reliable
         # than the below, so should be tried first.
-        calc = ConformerRmsd(substructure1, substructure2)
+        calc = ConformerRmsd(substructure1, substructure2, in_place=False)
         calc.use_heavy_atom_graph = True
         calc.renumber_structures = False
         rmsd = calc.calculate()
 
-    '''with StructureWriter('/scratch/users/psuriana/PYMOL_STRUCT/3ru1_mcss.mae') as writer:
+    #with StructureWriter('/scratch/users/psuriana/PYMOL_STRUCT/3ru1_mcss.mae') as writer:
+    '''from schrodinger.structutils.transform import transform_structure
+    with StructureWriter('/home/users/psuriana/PYMOL_STRUCT/P00734-1bcu_mcss.mae') as writer:
         pose1.property['s_m_title'] = 'native-ori'
         writer.append(pose1)
         pose2.property['s_m_title'] = 'anchor-ori'
+        print(calc.superposition_matrix)
+        transform_structure(pose2, calc.superposition_matrix)
         writer.append(pose2)
 
-        ref_st = calc._working_ref_st
+        #ref_st = calc._working_ref_st
+        ref_st = substructure1
         ref_st.property['s_m_title'] = 'native-mcss'
         writer.append(ref_st)
-        test_st = calc._working_test_st
+        #test_st = calc._working_test_st
+        test_st = substructure2
         test_st.property['s_m_title'] = 'anchor-mcss'
+        print(calc.superposition_matrix)
+        transform_structure(test_st, calc.superposition_matrix)
         writer.append(test_st)
     import pdb; pdb.set_trace()'''
     return rmsd

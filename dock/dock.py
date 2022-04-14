@@ -37,7 +37,7 @@ def dock(grid, ligands, root, name, enhanced, infile=None, reference=None):
     glide_in = '{}/{}.in'.format(root, name)
     glide_pv = '{}/{}_pv.maegz'.format(root, name)
     glide_log = '{}/{}.log'.format(root, name)
-    glide_cmd = 'glide -WAIT -LOCAL -RESTART {}'.format(os.path.basename(glide_in))
+    glide_cmd = 'glide -WAIT -LOCAL -OVERWRITE {}'.format(os.path.basename(glide_in))
 
     if os.path.exists(glide_pv):
         return
