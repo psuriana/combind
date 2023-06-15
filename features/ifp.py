@@ -88,7 +88,7 @@ class Molecule:
             atom_name += [atomname(atom)]
             res_name += [resname(atom)]
             vdw += [self.settings['nonpolar'][atom.GetAtomicNum()]]
-
+        
         if coord:
             coord = np.vstack(coord)
             vdw = np.array(vdw)
@@ -171,7 +171,7 @@ def _get_bonded_hydrogens(atom):
             hydrogen = bond.GetBeginAtom()
         else:
             hydrogen = bond.GetEndAtom()
-
+            
         if hydrogen.GetAtomicNum() == 1:
             hydrogens += [hydrogen]
     return hydrogens
@@ -239,7 +239,7 @@ def saltbridge_compute(protein, ligand, settings):
                 ligand_atoms = ligand.charge_groups[ligand_atom.GetIdx()]
             else:
                 ligand_atoms = [ligand_atom]
-
+            
             if ('saltbridge_resonance' in settings and
                 resname(protein_atom) in protein.charge_groups):
                 protein_atoms = protein.charge_groups[resname(protein_atom)]
@@ -354,7 +354,7 @@ def fingerprint_poseviewer(input_file, poses, settings):
     with gzip.open(input_file) as fp:
         mols =  MaeMolSupplier(fp, removeHs=False)
         protein = Molecule(next(mols), True, settings)
-
+        
         for i, ligand in enumerate(mols):
             if i == poses: break
             if ligand is None:
@@ -386,16 +386,14 @@ def ifp(settings, input_file, output_file, poses, convert=False):
     scores = compute_scores(fps, settings)
 
     # Write to files
-    if output_file:
-        fps = fps.set_index(['pose', 'label', 'protein_res', 'protein_atom', 'ligand_atom'])
-        fps = fps.sort_index()
-        base = output_file.split('.')
-        base, ext = base[:-1], base[-1]
-        raw_file = '.'.join(base) + '_raw.' + ext
+    fps = fps.set_index(['pose', 'label', 'protein_res', 'protein_atom', 'ligand_atom'])
+    fps = fps.sort_index()
+    base = output_file.split('.')
+    base, ext = base[:-1], base[-1]
+    raw_file = '.'.join(base) + '_raw.' + ext
 
-        fps.to_csv(raw_file)
-        scores.to_csv(output_file)
-    return fps, scores
+    fps.to_csv(raw_file)
+    scores.to_csv(output_file)
 
 @click.command()
 @click.argument('input_file')

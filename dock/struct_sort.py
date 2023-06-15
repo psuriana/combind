@@ -10,7 +10,7 @@ def split_complex(st, pdb_id):
         lig_st = st.extract([a.index for a in st.atom if a.chain == 'L'])
         lig_st.title = '{}_lig'.format(pdb_id)
         lig_st.write(lig_path)
-    
+
     if not os.path.exists(prot_path):
         prot_st = st.extract([a.index for a in st.atom if a.chain != 'L'])
         prot_st.title = '{}_prot'.format(pdb_id)
@@ -21,5 +21,10 @@ def struct_sort(structs):
         opt_complex = 'structures/aligned/{}/rot-{}_query.mae'.format(struct, struct)
 
         if os.path.exists(opt_complex):
-            comp_st = next(StructureReader(opt_complex))
+            try:
+                comp_st = next(StructureReader(opt_complex))
+            except Exception as e:
+                print(e)
+                print(opt_complex)
+                raise e
             split_complex(comp_st, struct)

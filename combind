@@ -70,9 +70,11 @@ def structprep(struct, grid_struct):
 
     structs = sorted(glob('structures/raw/*_prot.mae*'))
     structs = [struct.split('/')[-1].split('_prot')[0] for struct in structs]
+    structs = [s for s in structs if '_raw' not in s]
     print(structs)
     if not struct:
-        struct = structs[0]
+        struct = [s for s in structs if ('_no_res_' not in s) and ('_AF_' not in s)][0]
+        print(f'Chose {struct} as reference structure')
 
     if not grid_struct:
         grid_struct = struct
@@ -124,13 +126,14 @@ def ligprep(smiles, root, screen, ligand_names, ligand_smiles, delim, processes)
             ligprep(_smiles)
     else:
         ligands = pd.read_csv(smiles, sep=delim)
+        print(f'Found {len(ligands)} ligands to prepare')
         unfinished = []
         for _, ligand in ligands.iterrows():
             _root = '{}/{}'.format(root, ligand[ligand_names])
             _smiles = '{}/{}/{}.smi'.format(root, ligand[ligand_names], ligand[ligand_names])
             _mae = _smiles.replace('.smi', '.maegz')
-
             if not os.path.exists(_mae):
+                print(f'Preparing {_mae}')
                 mkdir(_root)
                 with open(_smiles, 'w') as fp:
                     fp.write('{} {}\n'.format(ligand[ligand_smiles], ligand[ligand_names]))
@@ -212,7 +215,7 @@ def rmsd(docking, crystal):
     for docking_path in docking:
         out = docking_path.replace('.maegz', '_rmsd.npy')
         if os.path.exists(out):
-            continue
+           continue
 
         name = docking_to_name(docking_path)
         crystal_path = [crystal_path for crystal_path in crystal
@@ -374,7 +377,7 @@ def featurize(root, poseviewers, ifp_version, mcss_version, shape_version,
         max_poses = max_poses if max_poses else 100
 
     features = Features(root, ifp_version=ifp_version, shape_version=shape_version,
-                            mcss_version=mcss_version, max_poses=max_poses)
+                        mcss_version=mcss_version, max_poses=max_poses)
 
     if not verify:
         features.compute_single_features(poseviewers, processes=processes)

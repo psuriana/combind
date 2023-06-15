@@ -18,12 +18,15 @@ def load_complex(prot_in, lig_in, struct):
     for c in lig_st.chain:
         c.name = 'L'
 
-    alpha = 'ABCDEFGHIJKMNOPQRST'
+    alpha = 'ABCDEFGHIJKMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     alpha_count = 0
     for c in prot_st.chain:
         if c.name.strip() == '': continue
-
-        c.name = alpha[alpha_count]
+        try:
+            c.name = alpha[alpha_count]
+        except Exception as e:
+            print(alpha_count)
+            raise e
         alpha_count += 1
 
     merged_st = lig_st.merge(prot_st)
