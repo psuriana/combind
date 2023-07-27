@@ -1,14 +1,15 @@
 import os
 from schrodinger.structure import StructureReader
 from subprocess import run
+import shutil
 
 command = '$SCHRODINGER/utilities/prepwizard -WAIT -rehtreat -watdist 0 {}_in.mae {}_out.mae'
 
 def load_complex(prot_in, lig_in, struct):
 
     prot_st = next(StructureReader(prot_in))
-    
-    if not os.path.exists(lig_in): 
+
+    if not os.path.exists(lig_in):
         prot_st.title = struct
         return prot_st
 
@@ -57,10 +58,13 @@ def struct_process(structs,
         os.system('rm -rf {}'.format(_workdir))
         os.system('mkdir {}'.format(_workdir))
 
-        merged_st = load_complex(_protein_in, _ligand_in, struct)
-        merged_st.write(_processed_in)
+        shutil.copy(_protein_in, _processed_in)
 
+        # prep AF structure without the ligand otherwise it may bias the sidechain to crystal
         with open('{}/process_in.sh'.format(_workdir), 'w') as f:
             f.write('#!/bin/bash\n')
             f.write(command.format(struct, struct))
         run('sh process_in.sh', shell=True, cwd=_workdir)
+
+        merged_st = load_complex(_processed_out, _ligand_in, struct)
+        merged_st.write(_processed_out)
